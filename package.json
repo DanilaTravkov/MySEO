@@ -1,0 +1,20 @@
+{
+  "name": "search-demand-intelligence",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/web",
+    "packages/shared"
+  ],
+  "scripts": {
+    "dev:web": "npm run dev --workspace=@search-intelligence/web",
+    "build:web": "npm run build --workspace=@search-intelligence/web",
+    "lint": "npm run lint --workspace=@search-intelligence/web",
+    "typecheck": "npm run typecheck --workspace=@search-intelligence/web",
+    "test": "npm run test --workspace=@search-intelligence/web"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
+
