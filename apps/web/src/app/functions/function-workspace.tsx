@@ -4,7 +4,8 @@ import { Check, ChevronRight, Clock3, Code2, Cpu, Play, Terminal } from "lucide-
 import { useEffect, useRef, useState } from "react";
 
 import { AppSelect } from "@/components/app-select";
-import { experienceLevelEvent, readExperienceLevel, saveExperienceLevel, type ExperienceLevel } from "@/lib/experience-level";
+import { updateCurrentUser } from "@/lib/auth-client";
+import { cacheExperienceLevel, experienceLevelEvent, readExperienceLevel, type ExperienceLevel } from "@/lib/experience-level";
 
 type ScanMode = "topic" | "market";
 type RunStatus = "ready" | "queued" | "running" | "completed";
@@ -76,6 +77,7 @@ export function FunctionWorkspace() {
   const [executions, setExecutions] = useState(initialExecutions);
   const [experienceLevel, setExperienceLevel] = useState<ExperienceLevel>("guided");
   const [experienceHydrated, setExperienceHydrated] = useState(false);
+  const [accessError, setAccessError] = useState("");
   const timersRef = useRef<number[]>([]);
 
   useEffect(() => () => timersRef.current.forEach((timer) => window.clearTimeout(timer)), []);
@@ -129,6 +131,16 @@ export function FunctionWorkspace() {
 
   const isExecuting = status === "queued" || status === "running";
 
+  async function activateAdvancedWorkspace() {
+    setAccessError("");
+    try {
+      const user = await updateCurrentUser({ experienceLevel: "advanced" });
+      cacheExperienceLevel(user.experienceLevel);
+    } catch (activationError) {
+      setAccessError(activationError instanceof Error ? activationError.message : "Sign in to change your workspace level.");
+    }
+  }
+
   if (!experienceHydrated) return <section aria-hidden="true" className="function-access-gate function-access-loading panel"><span /><span /><span /></section>;
 
   if (experienceLevel === "guided") return (
@@ -138,7 +150,8 @@ export function FunctionWorkspace() {
       <h2>Build repeatable checks with code.</h2>
       <p>Cloud functions are intended for API-driven workflows where you control the runtime, verification logic, and execution region.</p>
       <div className="function-access-points"><span><Check size={14} /> Run custom verification logic</span><span><Check size={14} /> Inspect execution logs and evidence</span><span><Check size={14} /> Prepare workflows for API access</span></div>
-      <button className="primary-button" onClick={() => saveExperienceLevel("advanced")} type="button">Use advanced workspace <ChevronRight size={15} /></button>
+      {accessError ? <p aria-live="polite" className="auth-error">{accessError}</p> : null}
+      <button className="primary-button" onClick={activateAdvancedWorkspace} type="button">Use advanced workspace <ChevronRight size={15} /></button>
       <small>This changes the product experience only. You can return to Guided workspace from your profile.</small>
     </section>
   );

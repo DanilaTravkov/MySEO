@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
 import { BrandMark } from "@/components/brand-mark";
-import { nameFromEmail, readMockUser, saveMockUser } from "@/lib/mock-auth";
+import { loginUser, registerUser } from "@/lib/auth-client";
 
 type AuthMode = "login" | "register";
 
@@ -14,6 +14,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const isRegister = mode === "register";
 
   function toggleTheme() {
@@ -24,7 +25,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
     localStorage.setItem("myseo-theme", nextTheme);
   }
 
-  function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
     const form = new FormData(event.currentTarget);
@@ -32,7 +33,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
     const password = String(form.get("password") ?? "");
 
     if (password.length < 8) {
-      setError("Use at least 8 characters for the mock password.");
+      setError("Use at least 8 characters for your password.");
       return;
     }
 
@@ -42,25 +43,25 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
         setError("The passwords do not match.");
         return;
       }
-      saveMockUser({
-        name: String(form.get("name") ?? "").trim(),
-        email,
-        company: String(form.get("company") ?? "").trim(),
-        role: "",
-        createdAt: new Date().toISOString(),
-      });
-    } else {
-      const existingUser = readMockUser();
-      saveMockUser(existingUser?.email === email ? existingUser : {
-        name: nameFromEmail(email),
-        email,
-        company: "",
-        role: "",
-        createdAt: new Date().toISOString(),
-      });
     }
-
-    router.push("/dashboard");
+    setSubmitting(true);
+    try {
+      if (isRegister) {
+        await registerUser({
+          name: String(form.get("name") ?? "").trim(),
+          email,
+          password,
+          company: String(form.get("company") ?? "").trim(),
+        });
+      } else {
+        await loginUser({ email, password, remember: form.get("remember") === "on" });
+      }
+      router.push("/dashboard");
+      router.refresh();
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : "Unable to authenticate.");
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -82,17 +83,17 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
           <div className="auth-heading">
             <p className="eyebrow">{isRegister ? "Create your workspace" : "Welcome back"}</p>
             <h2>{isRegister ? "Start with MySEO" : "Sign in to MySEO"}</h2>
-            <p>{isRegister ? "Create a mock profile and explore the complete research workflow." : "Continue to your demand intelligence workspace."}</p>
+            <p>{isRegister ? "Create your profile and start exploring search demand." : "Continue to your demand intelligence workspace."}</p>
           </div>
 
           <form className="auth-form" onSubmit={submit}>
             {isRegister ? <div className="auth-field-row"><label>Full name<input autoComplete="name" name="name" placeholder="Alex Morgan" required /></label><label>Company <span>Optional</span><input autoComplete="organization" name="company" placeholder="Acme" /></label></div> : null}
             <label>Personal email<input autoComplete="email" name="email" placeholder="you@example.com" required type="email" /></label>
             <label>Password<div className="password-field"><input autoComplete={isRegister ? "new-password" : "current-password"} minLength={8} name="password" placeholder="At least 8 characters" required type={showPassword ? "text" : "password"} /><button aria-label={showPassword ? "Hide password" : "Show password"} onClick={() => setShowPassword((current) => !current)} type="button">{showPassword ? <EyeOff size={17} /> : <Eye size={17} />}</button></div></label>
-            {isRegister ? <label>Confirm password<input autoComplete="new-password" minLength={8} name="passwordConfirmation" placeholder="Repeat your password" required type={showPassword ? "text" : "password"} /></label> : <div className="auth-form-meta"><label><input name="remember" type="checkbox" /> Keep me signed in</label><button onClick={() => setError("Password recovery will be connected with real authentication.")} type="button">Forgot password?</button></div>}
+            {isRegister ? <label>Confirm password<input autoComplete="new-password" minLength={8} name="passwordConfirmation" placeholder="Repeat your password" required type={showPassword ? "text" : "password"} /></label> : <div className="auth-form-meta"><label><input name="remember" type="checkbox" /> Keep me signed in</label></div>}
             {isRegister ? <label className="auth-consent"><input required type="checkbox" /><span>I agree to the <button onClick={() => window.dispatchEvent(new Event("myseo:terms"))} type="button">Terms</button> and <button onClick={() => window.dispatchEvent(new Event("myseo:privacy"))} type="button">Privacy Policy</button>.</span></label> : null}
             {error ? <p aria-live="polite" className="auth-error">{error}</p> : null}
-            <button className="auth-submit" type="submit">{isRegister ? "Create mock account" : "Sign in"}<ArrowRight size={17} /></button>
+            <button className="auth-submit" disabled={submitting} type="submit">{submitting ? "Please wait…" : isRegister ? "Create account" : "Sign in"}<ArrowRight size={17} /></button>
           </form>
 
           <p className="auth-switch">{isRegister ? "Already have a profile?" : "New to MySEO?"} <Link href={isRegister ? "/login" : "/register"}>{isRegister ? "Sign in" : "Create an account"}</Link></p>

@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   applicationName: "MySEO",
   title: { default: "MySEO", template: "%s · MySEO" },
   description: "Search demand intelligence for buildable software opportunities.",
-  icons: { icon: "/icon.svg?v=5" },
+  icons: { icon: "/icon.svg?v=6" },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {

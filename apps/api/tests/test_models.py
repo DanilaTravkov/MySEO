@@ -30,6 +30,8 @@ EXPECTED_TABLES = {
     "opportunities",
     "product_hypotheses",
     "seeds",
+    "user_sessions",
+    "users",
     "workspaces",
 }
 

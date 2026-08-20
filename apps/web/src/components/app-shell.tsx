@@ -6,9 +6,9 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 
 import { BrandMark } from "@/components/brand-mark";
+import { authEvent, fetchCurrentUser, type AuthUser } from "@/lib/auth-client";
 import { experienceLevelEvent, readExperienceLevel, type ExperienceLevel } from "@/lib/experience-level";
 import { navigationItems } from "@/lib/navigation";
-import { mockAuthEvent, readMockUser, type MockUser } from "@/lib/mock-auth";
 
 const guidePromptKey = "myseo-guide-prompt-dismissed";
 const productTourKey = "myseo-product-tour";
@@ -16,14 +16,14 @@ const productTourKey = "myseo-product-tour";
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [showGuidePrompt, setShowGuidePrompt] = useState(false);
-  const [mockUser, setMockUser] = useState<MockUser | null>(null);
+  const [authUser, setAuthUser] = useState<AuthUser | null>(null);
   const [experienceLevel, setExperienceLevel] = useState<ExperienceLevel>("guided");
   const [experienceHydrated, setExperienceHydrated] = useState(false);
   const isAuthRoute = pathname === "/login" || pathname === "/register";
   const currentRoute = navigationItems.find(({ href }) =>
     pathname === href || (pathname.startsWith("/keywords/") && href === "/discover")
   );
-  const profileInitial = mockUser?.name.trim().charAt(0).toUpperCase() || "U";
+  const profileInitial = authUser?.name.trim().charAt(0).toUpperCase() || "U";
   const coreNavigationItems = navigationItems.filter((item) => !item.level && item.href !== "/settings");
   const advancedNavigationItems = navigationItems.filter((item) => item.level === "advanced");
   const settingsItem = navigationItems.find((item) => item.href === "/settings");
@@ -51,13 +51,17 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const syncUser = () => setMockUser(readMockUser());
+    let active = true;
+    const syncUser = () => void fetchCurrentUser()
+      .then((user) => { if (active) setAuthUser(user); })
+      .catch(() => { if (active) setAuthUser(null); });
     const syncTimer = window.setTimeout(syncUser, 0);
-    window.addEventListener(mockAuthEvent, syncUser);
+    window.addEventListener(authEvent, syncUser);
     window.addEventListener("storage", syncUser);
     return () => {
+      active = false;
       window.clearTimeout(syncTimer);
-      window.removeEventListener(mockAuthEvent, syncUser);
+      window.removeEventListener(authEvent, syncUser);
       window.removeEventListener("storage", syncUser);
     };
   }, []);
@@ -124,7 +128,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               {showGuidePrompt ? <aside className="guide-prompt" id="guide-prompt" role="status"><span className="guide-prompt-icon"><HelpCircle size={16} /></span><div><strong>Start with the product guide</strong><p>It is worth taking the short tour before your first discovery. You will learn what each metric means and where to begin.</p></div><button aria-label="Dismiss guide recommendation" onClick={dismissGuidePrompt} type="button"><X size={15} /></button></aside> : null}
             </div>
             <Link className="topbar-action" href="/discover"><Plus size={15} /> New discovery</Link>
-            {mockUser ? <Link aria-label={`Open ${mockUser.name}'s profile`} className="profile-control" href="/profile" title={mockUser.name}>{profileInitial}</Link> : <Link className="topbar-sign-in" href="/login"><UserRound size={15} /> Sign in</Link>}
+            {authUser ? <Link aria-label={`Open ${authUser.name}'s profile`} className="profile-control" href="/profile" title={authUser.name}>{profileInitial}</Link> : <Link className="topbar-sign-in" href="/login"><UserRound size={15} /> Sign in</Link>}
           </div>
         </header>
         <main className="main-content" id="main-content">{children}</main>

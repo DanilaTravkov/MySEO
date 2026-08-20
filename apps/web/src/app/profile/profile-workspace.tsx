@@ -6,46 +6,73 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 
 import { ProfileSkeleton } from "@/components/loading-skeletons";
-import { readExperienceLevel, saveExperienceLevel, type ExperienceLevel } from "@/lib/experience-level";
-import { clearMockUser, readMockUser, saveMockUser, type MockUser } from "@/lib/mock-auth";
+import { fetchCurrentUser, logoutUser, updateCurrentUser, type AuthUser } from "@/lib/auth-client";
+import type { ExperienceLevel } from "@/lib/experience-level";
 
 export function ProfileWorkspace() {
   const router = useRouter();
-  const [user, setUser] = useState<MockUser | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [hydrated, setHydrated] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState("");
   const [experienceLevel, setExperienceLevel] = useState<ExperienceLevel>("guided");
 
   useEffect(() => {
-    const loadTimer = window.setTimeout(() => {
-      setUser(readMockUser());
-      setExperienceLevel(readExperienceLevel());
-      setHydrated(true);
-    }, 0);
-    return () => window.clearTimeout(loadTimer);
+    let active = true;
+    void fetchCurrentUser()
+      .then((currentUser) => {
+        if (!active) return;
+        setUser(currentUser);
+        if (currentUser) setExperienceLevel(currentUser.experienceLevel);
+      })
+      .catch(() => { if (active) setError("Unable to load your profile."); })
+      .finally(() => { if (active) setHydrated(true); });
+    return () => { active = false; };
   }, []);
 
-  function update(field: keyof Pick<MockUser, "name" | "email" | "company" | "role">, value: string) {
+  function update(field: keyof Pick<AuthUser, "name" | "email" | "company" | "role">, value: string) {
     setSaved(false);
+    setError("");
     setUser((current) => current ? { ...current, [field]: value } : current);
   }
 
-  function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!user) return;
-    saveMockUser(user);
-    setSaved(true);
+    setError("");
+    try {
+      const updatedUser = await updateCurrentUser({
+        name: user.name,
+        email: user.email,
+        company: user.company,
+        role: user.role,
+      });
+      setUser(updatedUser);
+      setSaved(true);
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : "Unable to save changes.");
+    }
   }
 
-  function signOut() {
-    clearMockUser();
+  async function signOut() {
+    await logoutUser();
     router.push("/login");
+    router.refresh();
   }
 
-  function changeExperienceLevel(level: ExperienceLevel) {
-    saveExperienceLevel(level);
+  async function changeExperienceLevel(level: ExperienceLevel) {
+    const previousLevel = experienceLevel;
     setExperienceLevel(level);
     setUser((current) => current ? { ...current, experienceLevel: level } : current);
+    setError("");
+    try {
+      const updatedUser = await updateCurrentUser({ experienceLevel: level });
+      setUser(updatedUser);
+    } catch (submitError) {
+      setExperienceLevel(previousLevel);
+      setUser((current) => current ? { ...current, experienceLevel: previousLevel } : current);
+      setError(submitError instanceof Error ? submitError.message : "Unable to change workspace level.");
+    }
   }
 
   if (!hydrated) return <ProfileSkeleton />;
@@ -80,6 +107,7 @@ export function ProfileWorkspace() {
           <label><span><Building2 size={15} /> Company</span><input autoComplete="organization" onChange={(event) => update("company", event.target.value)} placeholder="Add your company" value={user.company} /></label>
           <label><span><UserRound size={15} /> Role</span><input autoComplete="organization-title" onChange={(event) => update("role", event.target.value)} placeholder="e.g. Product manager" value={user.role} /></label>
         </div>
+        {error ? <p aria-live="polite" className="auth-error">{error}</p> : null}
         <footer><button className="primary-button" type="submit">Save changes</button></footer>
       </form>
 

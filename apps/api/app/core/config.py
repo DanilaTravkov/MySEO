@@ -26,6 +26,8 @@ class Settings(BaseSettings):
     recommendation_strong_min: float = 75
     recommendation_build_min: float = 85
     clustering_similarity_threshold: float = Field(default=0.15, ge=0, le=1)
+    auth_session_hours: int = Field(default=24, ge=1, le=168)
+    auth_remember_days: int = Field(default=30, ge=1, le=365)
 
     @property
     def cors_origin_list(self) -> list[str]:
