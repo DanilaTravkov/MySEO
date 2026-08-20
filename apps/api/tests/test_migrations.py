@@ -16,8 +16,8 @@ def alembic_config() -> Config:
 def test_alembic_has_single_head() -> None:
     scripts = ScriptDirectory.from_config(alembic_config())
 
-    assert scripts.get_heads() == ["20260820_0005"]
-    assert scripts.get_revision("20260820_0005").down_revision == "20260811_0004"
+    assert scripts.get_heads() == ["20260820_0006"]
+    assert scripts.get_revision("20260820_0006").down_revision == "20260820_0005"
 
 
 def test_migrations_upgrade_and_downgrade() -> None:
@@ -36,9 +36,11 @@ def test_migrations_upgrade_and_downgrade() -> None:
             "keyword_observations",
             "keywords",
             "monthly_search_volumes",
+            "monitor_signals",
             "opportunities",
             "product_hypotheses",
             "seeds",
+            "search_monitors",
             "user_sessions",
             "users",
             "workspaces",

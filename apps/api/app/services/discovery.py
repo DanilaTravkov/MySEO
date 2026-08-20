@@ -43,8 +43,14 @@ async def run_discovery(
     geo: str,
     limit: int,
     config: dict[str, Any] | None = None,
+    workspace: Workspace | None = None,
+    monitor_id: UUID | None = None,
+    trigger: str = "manual",
+    scheduled_for: datetime | None = None,
 ) -> DiscoveryResult:
-    workspace = session.scalar(select(Workspace).where(Workspace.name == "Local workspace"))
+    workspace = workspace or session.scalar(
+        select(Workspace).where(Workspace.name == "Local workspace")
+    )
     if workspace is None:
         workspace = Workspace(name="Local workspace")
         session.add(workspace)
@@ -53,8 +59,11 @@ async def run_discovery(
     clean_seeds = list(dict.fromkeys(seed.strip() for seed in seeds if seed.strip()))
     run = DiscoveryRun(
         workspace=workspace,
+        monitor_id=monitor_id,
         provider=provider_id,
         status="running",
+        trigger=trigger,
+        scheduled_for=scheduled_for,
         language=language,
         geo=geo,
         started_at=datetime.now(UTC),

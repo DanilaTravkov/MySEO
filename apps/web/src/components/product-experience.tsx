@@ -4,6 +4,9 @@ import { Check, ChevronLeft, ChevronRight, Cookie, ExternalLink, ShieldCheck, X 
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 
+import { updateCurrentUser } from "../lib/auth-client";
+import { cacheExperienceLevel } from "../lib/experience-level";
+
 const CONSENT_KEY = "myseo-cookie-consent";
 const TOUR_KEY = "myseo-product-tour";
 
@@ -20,6 +23,7 @@ type TourStep = {
   details: ReadonlyArray<{ label: string; text: string }>;
   coachWidth?: number;
   preferredSide: TourSide;
+  primaryAction?: "switch-to-advanced";
 };
 
 const tourSteps: readonly TourStep[] = [
@@ -53,12 +57,17 @@ const tourSteps: readonly TourStep[] = [
     { label: "Smaller scores", text: "They explain the result: demand, growth, commercial value, competition, intent, and buildability." },
     { label: "Next step", text: "Treat the score as a shortlist, then validate the customer problem before building." },
   ] },
+  { path: "/opportunities", selector: "[data-tour='advanced-workspace']", eyebrow: "Workspace level", title: "Unlock advanced research tools", body: "The guided workspace keeps the daily workflow focused. Switch to advanced when you want deeper diagnostics and repeatable market tracking.", preferredSide: "right", primaryAction: "switch-to-advanced", details: [
+    { label: "Distribution Lab", text: "Inspect the statistical shape behind demand, growth, competition, and bid metrics." },
+    { label: "Monitoring", text: "Repeat the same market discovery on a schedule and compare snapshots over time." },
+    { label: "Reversible", text: "This changes the workspace navigation, not your data. You can switch back from your profile." },
+  ] },
   { path: "/distributions", selector: "[data-tour='distribution-metric']", eyebrow: "Distribution Lab · Choose", title: "Choose one metric to inspect", body: "Distribution Lab shows how one number varies across all keywords in the latest run.", preferredSide: "bottom", details: [
     { label: "Example", text: "Choose Average monthly searches to compare keyword demand." },
     { label: "Both graphs", text: "The histogram and Q–Q plot update together for the selected metric." },
     { label: "Why", text: "The shape helps you spot typical values, uneven data, and unusually large or small observations." },
   ] },
-  { path: "/distributions", selector: "[data-tour='histogram']", eyebrow: "Distribution Lab · Empirical shape", title: "Read the histogram axes", body: "Empirical simply means the values actually observed in your dataset.", coachWidth: 640, preferredSide: "right", details: [
+  { path: "/distributions", selector: "[data-tour='histogram']", eyebrow: "Distribution Lab · Empirical shape", title: "Read the histogram axes", body: "Empirical simply means the values actually observed in your dataset.", coachWidth: 560, preferredSide: "right", details: [
     { label: "Horizontal axis", text: "Values of the selected metric, from lower on the left to higher on the right. For search volume, these are monthly searches." },
     { label: "Vertical axis", text: "The number of keywords inside each value range. It is a keyword count, not search volume." },
     { label: "Bars", text: "Each bar is one range. A taller bar means more keywords have values in that range." },
@@ -74,6 +83,11 @@ const tourSteps: readonly TourStep[] = [
     { label: "Mean and median", text: "Mean is the average; median is the middle. A large gap often means a few extreme values are pulling the average." },
     { label: "Spread", text: "Std and MAD describe how far values sit from the center. Larger values mean more variation." },
     { label: "Shape and sample", text: "Skewness and kurtosis describe shape; sample size is the number of keywords checked. Read the message below for the plain-language takeaway." },
+  ] },
+  { path: "/monitoring", selector: "[data-tour='monitoring']", eyebrow: "Monitoring · Continuous intelligence", title: "Watch the same market over time", body: "A monitor saves one market definition and builds a comparable history of discovery runs, so meaningful changes become visible.", preferredSide: "bottom", details: [
+    { label: "Define once", text: "Choose the seed queries, market, language, provider, and refresh frequency." },
+    { label: "Run repeatedly", text: "Scheduled workers collect fresh search observations without changing the monitor definition." },
+    { label: "Read signals", text: "Compare snapshots to spot changes in demand, competition, and search intent." },
   ] },
 ];
 
@@ -372,6 +386,15 @@ export function ProductExperience() {
     setTourTransitioning(true);
     setTourIndex(index);
   }
+  function advanceTour() {
+    if (displayedIndex === null || !displayedStep) return;
+    if (displayedStep.primaryAction === "switch-to-advanced") {
+      cacheExperienceLevel("advanced");
+      void updateCurrentUser({ experienceLevel: "advanced" }).catch(() => undefined);
+    }
+    if (displayedIndex === tourSteps.length - 1) finishTour();
+    else showTourStep(displayedIndex + 1);
+  }
   function finishTour() {
     returnToDashboardTopRef.current = true;
     closeTour(true);
@@ -395,6 +418,6 @@ export function ProductExperience() {
     {hydrated && consent === null && <aside aria-label="Cookie consent" className="cookie-banner"><div className="cookie-icon"><Cookie size={21} /></div><div className="cookie-copy"><strong>Your research. Your choice.</strong><p>We use essential storage to keep MySEO working. Optional analytics only run with your permission.</p><button onClick={() => setLegal("cookies")} type="button">Read Cookie Policy <ExternalLink size={12} /></button></div><div className="cookie-actions"><button className="primary-button" onClick={() => saveConsent("all")} type="button">Accept all</button><button className="secondary-button" onClick={() => saveConsent("necessary")} type="button">Necessary only</button></div></aside>}
     {showPreferences && <div className="experience-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setShowPreferences(false)}><section aria-labelledby="cookie-preference-title" aria-modal="true" className="preference-modal" role="dialog"><div className="preference-title"><span className="cookie-icon"><Cookie size={20} /></span><div><p className="eyebrow">Privacy controls</p><h2 id="cookie-preference-title">Cookie preferences</h2></div><button aria-label="Close cookie preferences" className="icon-button" onClick={() => setShowPreferences(false)} type="button"><X size={18} /></button></div><div className="preference-row"><div><strong>Essential</strong><p>Consent, onboarding, security, and session continuity.</p></div><span className="always-on"><Check size={12} /> Always on</span></div><div className="preference-row"><div><strong>Optional analytics</strong><p>Helps us understand product usage. No advertising cookies.</p></div><span className={consent === "all" ? "consent-state enabled" : "consent-state"}>{consent === "all" ? "Allowed" : "Off"}</span></div><div className="preference-actions"><button className="secondary-button" onClick={() => saveConsent("necessary")} type="button">Use necessary only</button><button className="primary-button" onClick={() => saveConsent("all")} type="button">Allow analytics</button></div></section></div>}
     {legal && <LegalModal kind={legal} onClose={() => setLegal(null)} />}
-    {displayedStep && displayedIndex !== null && <div aria-busy={tourTransitioning} className={tourLayerClass} aria-live="polite">{!tourTransitioning && displayedTargetRect && <><div className="tour-spotlight" style={{ left: displayedTargetRect.left, top: displayedTargetRect.top, width: displayedTargetRect.width, height: displayedTargetRect.height }} /><section aria-label={`Product tour step ${displayedIndex + 1} of ${tourSteps.length}`} className={`tour-coach${preferredCoachWidth > 420 ? " wide" : ""}${displayedStep.details.length > 3 ? " four-details" : ""}`} style={coachStyle}><div className="tour-coach-content"><div className="tour-progress"><span>{String(displayedIndex + 1).padStart(2, "0")} / {tourSteps.length}</span><i><b style={{ width: `${((displayedIndex + 1) / tourSteps.length) * 100}%` }} /></i><button aria-label="Close tour" onClick={() => closeTour()} type="button"><X size={16} /></button></div><p className="eyebrow">{displayedStep.eyebrow}</p><h2>{displayedStep.title}</h2><p>{displayedStep.body}</p><dl className="tour-details">{displayedStep.details.map((detail) => <div key={detail.label}><dt>{detail.label}</dt><dd>{detail.text}</dd></div>)}</dl><footer><button className="tour-skip" onClick={() => closeTour()} type="button">Exit guide</button><div>{displayedIndex > 0 && <button aria-label="Previous step" className="icon-button" onClick={() => showTourStep(displayedIndex - 1)} type="button"><ChevronLeft size={18} /></button>}<button className="primary-button" onClick={() => displayedIndex === tourSteps.length - 1 ? finishTour() : showTourStep(displayedIndex + 1)} type="button">{displayedIndex === tourSteps.length - 1 ? "Finish" : "Next"}<ChevronRight size={15} /></button></div></footer></div></section></>}</div>}
+    {displayedStep && displayedIndex !== null && <div aria-busy={tourTransitioning} className={tourLayerClass} aria-live="polite">{!tourTransitioning && displayedTargetRect && <><div className="tour-spotlight" style={{ left: displayedTargetRect.left, top: displayedTargetRect.top, width: displayedTargetRect.width, height: displayedTargetRect.height }} /><section aria-label={`Product tour step ${displayedIndex + 1} of ${tourSteps.length}`} className={`tour-coach${preferredCoachWidth > 420 ? " wide" : ""}${displayedStep.details.length > 3 ? " four-details" : ""}`} style={coachStyle}><div className="tour-coach-content"><div className="tour-progress"><span>{String(displayedIndex + 1).padStart(2, "0")} / {tourSteps.length}</span><i><b style={{ width: `${((displayedIndex + 1) / tourSteps.length) * 100}%` }} /></i><button aria-label="Close tour" onClick={() => closeTour()} type="button"><X size={16} /></button></div><p className="eyebrow">{displayedStep.eyebrow}</p><h2>{displayedStep.title}</h2><p>{displayedStep.body}</p><dl className="tour-details">{displayedStep.details.map((detail) => <div key={detail.label}><dt>{detail.label}</dt><dd>{detail.text}</dd></div>)}</dl><footer><button className="tour-skip" onClick={() => closeTour()} type="button">Exit guide</button><div>{displayedIndex > 0 && <button aria-label="Previous step" className="icon-button" onClick={() => showTourStep(displayedIndex - 1)} type="button"><ChevronLeft size={18} /></button>}<button className="primary-button" onClick={advanceTour} type="button">{displayedStep.primaryAction === "switch-to-advanced" ? "See advanced features" : displayedIndex === tourSteps.length - 1 ? "Finish" : "Next"}<ChevronRight size={15} /></button></div></footer></div></section></>}</div>}
   </>;
 }

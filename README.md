@@ -2,6 +2,8 @@
 
 An opportunity engine that turns search-demand signals into ranked, explainable software product opportunities. The current MVP includes discovery, statistical analytics, distribution diagnostics, and the Stage 5 analytics dashboard.
 
+Search Monitoring adds a time dimension to that workflow. A monitor stores one repeatable provider configuration, links its immutable discovery runs, and derives change signals by comparing each completed run with its predecessor.
+
 ## Quick start
 
 Copy `.env.example` to `.env`, then start PostgreSQL and the API:
@@ -51,6 +53,9 @@ GET  /api/dashboard                 Live dashboard summary
 GET  /api/discovery/results         Latest or selected run table
 GET  /api/keywords/{keyword_id}     Keyword history and explanation
 GET  /api/opportunities             Ranked cards when clusters exist
+GET  /api/monitors                  Saved search monitors and latest state
+POST /api/monitors                  Create a repeatable market monitor
+POST /api/monitors/{id}/runs        Capture a new snapshot and detect changes
 POST /api/clustering/runs/{run_id}  Recalculate deterministic clusters
 GET  /api/clusters                  Run-scoped cluster analytics
 ```
@@ -61,6 +66,17 @@ cosine similarity, and agglomerative clustering. Configure the cutoff with
 search-demand signal**, not as unique monthly users.
 
 Open `http://localhost:3000/distributions` for the empirical histogram, normal-fit diagnostic, Q–Q plot, and robust distribution statistics. See `docs/SCORING.md` for normalization and scoring details.
+
+Open `http://localhost:3000/monitoring` to create a monitor, capture a baseline, compare later runs, and inspect derived signals. The credential-free implementation supports the deterministic mock provider. CSV remains manual because an uploaded file cannot refresh itself; Google Ads remains unavailable until a real provider and credentials are configured.
+
+Run due monitors once with:
+
+```bash
+cd apps/api
+uv run python -m app.scheduler
+```
+
+In production, configure one scheduler (for example a Render Cron Job running every 15 minutes) with `python -m app.scheduler`. The scheduler only claims monitors whose `next_run_at` is due; monitor cadence remains source-aware and is not the cron polling interval.
 
 ## Checks
 

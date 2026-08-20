@@ -116,7 +116,7 @@ export function ProfileWorkspace() {
         <p className="profile-form-intro">This changes which tools and explanations are shown. You can switch back at any time.</p>
         <div className="experience-options" role="group" aria-label="Product experience level">
           <button aria-pressed={experienceLevel === "guided"} className={experienceLevel === "guided" ? "active" : ""} onClick={() => changeExperienceLevel("guided")} type="button"><span><BookOpen size={18} /></span><div><strong>Guided workspace</strong><p>Core research workflow with product guidance and contextual explanations.</p></div><i>{experienceLevel === "guided" ? <Check size={15} /> : null}</i></button>
-          <button aria-pressed={experienceLevel === "advanced"} className={experienceLevel === "advanced" ? "active" : ""} onClick={() => changeExperienceLevel("advanced")} type="button"><span><Code2 size={18} /></span><div><strong>Advanced workspace</strong><p>Adds cloud functions and prepares the workspace for API-driven workflows.</p></div><i>{experienceLevel === "advanced" ? <Check size={15} /> : null}</i></button>
+          <button aria-pressed={experienceLevel === "advanced"} className={experienceLevel === "advanced" ? "active" : ""} onClick={() => changeExperienceLevel("advanced")} type="button"><span><Code2 size={18} /></span><div><strong>Advanced workspace</strong><p>Adds Distribution Lab and Monitoring for deeper analysis and repeatable market tracking.</p></div><i>{experienceLevel === "advanced" ? <Check size={15} /> : null}</i></button>
         </div>
       </section>
     </div>

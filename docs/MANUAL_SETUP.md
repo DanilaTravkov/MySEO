@@ -9,3 +9,13 @@ Stage 1 needs no third-party credentials.
 
 Google Ads and OpenAI setup will be documented at their respective manual gates. Do not add credentials before those stages.
 
+## Monitoring scheduler
+
+Run one scheduler pass locally after the API database is available:
+
+```bash
+cd apps/api
+uv run python -m app.scheduler
+```
+
+For Render, create one Cron Job with schedule `*/15 * * * *` and command `python -m app.scheduler`. Reuse the API database environment. Do not create a separate cloud cron service for every user monitor.

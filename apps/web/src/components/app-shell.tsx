@@ -104,8 +104,25 @@ export function AppShell({ children }: { children: ReactNode }) {
               <ArrowUpRight className="nav-arrow" size={14} />
             </Link>
           ))}
-          <div className="experience-nav-slot">
-            {experienceHydrated ? experienceLevel === "advanced" ? <div className="advanced-nav-group"><p>Advanced</p>{advancedNavigationItems.map(({ href, icon: Icon, label }) => <Link className={currentRoute?.href === href ? "active" : ""} href={href} key={href}><Icon size={18} /><span>{label}</span><ArrowUpRight className="nav-arrow" size={14} /></Link>)}</div> : <Link className="advanced-workspace-entry" href="/functions"><Code2 size={18} /><span><strong>Advanced workspace</strong><small>Functions and API tools</small></span><ArrowUpRight className="nav-arrow" size={14} /></Link> : <span aria-hidden="true" className="experience-nav-placeholder" />}
+          <div className="experience-nav-slot" data-tour="advanced-workspace">
+            {!experienceHydrated ? <span className="experience-nav-placeholder" /> : experienceLevel === "advanced" ? (
+              <div className="advanced-nav-group">
+                <p>Advanced workspace</p>
+                {advancedNavigationItems.map(({ href, icon: Icon, label }) => (
+                  <Link className={currentRoute?.href === href ? "active" : ""} href={href} key={href}>
+                    <Icon size={18} />
+                    <span>{label}</span>
+                    <ArrowUpRight className="nav-arrow" size={14} />
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <Link className="advanced-workspace-entry" href="/profile#experience">
+                <Code2 size={18} />
+                <span><strong>Advanced workspace</strong><small>Distribution lab and monitoring</small></span>
+                <ArrowUpRight className="nav-arrow" size={14} />
+              </Link>
+            )}
           </div>
           {settingsItem && SettingsIcon ? <Link className={currentRoute?.href === settingsItem.href ? "active" : ""} href={settingsItem.href}><SettingsIcon size={18} /><span>{settingsItem.label}</span><ArrowUpRight className="nav-arrow" size={14} /></Link> : null}
         </nav>

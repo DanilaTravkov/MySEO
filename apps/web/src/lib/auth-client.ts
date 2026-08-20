@@ -1,4 +1,4 @@
-import { cacheExperienceLevel, type ExperienceLevel } from "@/lib/experience-level";
+import { cacheExperienceLevel, type ExperienceLevel } from "./experience-level";
 
 export const authEvent = "myseo:auth";
 const authSyncKey = "myseo-auth-sync";

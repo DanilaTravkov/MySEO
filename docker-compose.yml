@@ -46,5 +46,17 @@ services:
     depends_on:
       api:
         condition: service_healthy
+
+  monitor-scheduler:
+    profiles: ["tools"]
+    build:
+      context: ./apps/api
+    command: ["sh", "-c", "alembic upgrade head && python -m app.scheduler"]
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://search_intelligence:local_development_only@postgres:5432/search_intelligence}
+      APP_ENV: local
+    depends_on:
+      postgres:
+        condition: service_healthy
 volumes:
   postgres_data:

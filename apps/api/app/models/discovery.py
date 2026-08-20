@@ -20,6 +20,10 @@ class Workspace(UuidPrimaryKeyMixin, CreatedAtMixin, Base):
         back_populates="workspace",
         cascade="all, delete-orphan",
     )
+    search_monitors: Mapped[list[SearchMonitor]] = relationship(
+        back_populates="workspace",
+        cascade="all, delete-orphan",
+    )
 
 
 class DiscoveryRun(UuidPrimaryKeyMixin, Base):
@@ -29,6 +33,15 @@ class DiscoveryRun(UuidPrimaryKeyMixin, Base):
             "status IN ('pending', 'running', 'completed', 'failed')",
             name="ck_discovery_runs_status",
         ),
+        CheckConstraint(
+            "trigger IN ('manual', 'scheduled')",
+            name="ck_discovery_runs_trigger",
+        ),
+        UniqueConstraint(
+            "monitor_id",
+            "scheduled_for",
+            name="uq_discovery_runs_monitor_scheduled_for",
+        ),
     )
 
     workspace_id: Mapped[UUID] = mapped_column(
@@ -36,8 +49,14 @@ class DiscoveryRun(UuidPrimaryKeyMixin, Base):
         nullable=False,
         index=True,
     )
+    monitor_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("search_monitors.id", ondelete="SET NULL"),
+        index=True,
+    )
     provider: Mapped[str] = mapped_column(String(64), nullable=False)
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="pending")
+    trigger: Mapped[str] = mapped_column(String(16), nullable=False, default="manual")
+    scheduled_for: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     language: Mapped[str] = mapped_column(String(16), nullable=False)
     geo: Mapped[str] = mapped_column(String(16), nullable=False)
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
@@ -46,6 +65,7 @@ class DiscoveryRun(UuidPrimaryKeyMixin, Base):
     error: Mapped[str | None] = mapped_column(Text)
 
     workspace: Mapped[Workspace] = relationship(back_populates="discovery_runs")
+    monitor: Mapped[SearchMonitor | None] = relationship(back_populates="discovery_runs")
     seeds: Mapped[list[Seed]] = relationship(
         back_populates="discovery_run",
         cascade="all, delete-orphan",
@@ -80,4 +100,5 @@ class Seed(UuidPrimaryKeyMixin, Base):
 
 
 from app.models.keyword import KeywordAnalysis, KeywordObservation  # noqa: E402
+from app.models.monitor import SearchMonitor  # noqa: E402
 from app.models.opportunity import Cluster  # noqa: E402
